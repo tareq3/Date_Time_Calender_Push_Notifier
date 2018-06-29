@@ -10,9 +10,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -20,25 +20,23 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.google.android.gms.common.api.Response;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.mti.pushnotifier.firebase.Constants;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
     private static final String TAG = "MainActivity";
@@ -50,11 +48,14 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     EditText mEmailText;
     Button send;
 
+
+    FirebaseFirestore mFirestore;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mFirestore=FirebaseFirestore.getInstance();
         mCalendar = Calendar.getInstance();
         mTextView = findViewById(R.id.m_Calender_Label);
         mEmailText=findViewById(R.id.emailText);
@@ -208,47 +209,61 @@ ProgressDialog progressDialog;
             String token2 = FirebaseInstanceId.getInstance().getToken();
             SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(token2);
 
+            setData(email, token2);
 
+            loadData();
             progressDialog.dismiss();
             Toast.makeText(this, "Token not generated", Toast.LENGTH_LONG).show();
             return;
+        }else {
+            setData(email,token);
+            loadData();
         }
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, Constants.URL_REGISTER_DEVICE,
 
-                new com.android.volley.Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        progressDialog.dismiss();
-                        try {
-                            JSONObject obj = new JSONObject(response);
-                            Toast.makeText(MainActivity.this, obj.getString("message"), Toast.LENGTH_LONG).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+
+
+    }
+
+    void setData(String email,String token){
+        String id= UUID.randomUUID().toString();
+        Map<String, Object> users=new HashMap<>();
+        users.put("id",id);
+        users.put("email",email);
+        users.put("token",token);
+
+        mFirestore.collection("users")
+                        .add(users)
+                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                            @Override
+                            public void onSuccess(DocumentReference documentReference) {
+                                Log.d("" +getClass().getName(), "User added with id"+ documentReference.getId());
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.w("" +getClass().getName(), "Error adding data to firestore");
+                            }
+                        });
+
+    }
+
+
+    void loadData(){
+        mFirestore.collection("users")
+                    .get()
+                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                            if(task.isSuccessful()){
+                                for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
+                                    Log.d("" +getClass().getName(), documentSnapshot.getId()+"=>" + documentSnapshot.getData());
+                                }
+                            }else{
+                                Log.w("" +getClass().getName(), "Error getting data from firestore");
+                            }
                         }
-                    }
-                }
-
-       ,
-
-                new com.android.volley.Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        progressDialog.dismiss();
-                        Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
-
-                    }
-                }
-      ) {
-
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String, String> params = new HashMap<>();
-                params.put("email", email);
-                params.put("token", token);
-                return params;
-            }
-        };
-        FcmVolley.getInstance(this).addToRequestQueue(stringRequest);
+                    });
     }
 }

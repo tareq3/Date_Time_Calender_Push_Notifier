@@ -15,6 +15,8 @@ package com.mti.pushnotifier;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
 /***
  * Created by Tareq on 28,June,2018.
  */
@@ -24,6 +26,9 @@ public class SharedPreference {
 
     private static SharedPreference mInstance;
     private static Context mCtx;
+
+
+
 
     private SharedPreference(Context context) {
         mCtx = context;
