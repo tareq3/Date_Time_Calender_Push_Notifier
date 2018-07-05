@@ -29,6 +29,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
@@ -37,6 +38,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
     private static final String TAG = "MainActivity";
@@ -57,9 +59,10 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
         mFirestore=FirebaseFirestore.getInstance();
         mCalendar = Calendar.getInstance();
-        mTextView = findViewById(R.id.m_Calender_Label);
-        mEmailText=findViewById(R.id.emailText);
-        send=findViewById(R.id.send);
+
+        initViews();
+
+
 
 
 
@@ -70,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
                 NotificationManager notificationManager =
                         getSystemService(NotificationManager.class);
                 notificationManager.createNotificationChannel(new NotificationChannel(channelId,
-                        channelName, NotificationManager.IMPORTANCE_LOW));
+                        channelName, NotificationManager.IMPORTANCE_HIGH));
             }
 
             // If a notification message is tapped, any data accompanying the notification
@@ -90,69 +93,83 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
             }
             // [END handle_data_extras]
 
-            Button subscribeButton = findViewById(R.id.subscribeButton);
-            subscribeButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.d(TAG, "Subscribing to news topic");
-                    // [START subscribe_topics]
-                    FirebaseMessaging.getInstance().subscribeToTopic("news")
-                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    String msg = getString(R.string.msg_subscribed);
-                                    if (!task.isSuccessful()) {
-                                        msg = getString(R.string.msg_subscribe_failed);
-                                    }
-                                    Log.d(TAG, msg);
-                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                    // [END subscribe_topics]
-                }
-            });
-
-            Button logTokenButton = findViewById(R.id.logTokenButton);
-            logTokenButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Get token
-                    String token = FirebaseInstanceId.getInstance().getToken();
-
-                    // Log and toast
-                    String msg = getString(R.string.msg_token_fmt, token);
-                    Log.d(TAG, msg);
-                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
-                }
-            });
+        initDateTimePicker();
 
 
-            mTimePickerDialog = TimePickerDialog.newInstance(
-                    this,
-                    mCalendar.get(Calendar.HOUR_OF_DAY),
-                    mCalendar.get(Calendar.MINUTE),
-                    mCalendar.get(Calendar.SECOND),
-                    false
-
-            );
-
-            mDatePickerDialog = DatePickerDialog.newInstance(
-                    this,
-                    mCalendar.get(Calendar.YEAR),
-                    mCalendar.get(Calendar.MONTH),
-                    mCalendar.get(Calendar.DAY_OF_MONTH)
-            );
-
-        mDatePickerDialog.show(getFragmentManager(), "Datepickerdialog");
 
 
 
         }
 
+    private void initDateTimePicker() {
+        mTimePickerDialog = TimePickerDialog.newInstance(
+                this,
+                mCalendar.get(Calendar.HOUR_OF_DAY),
+                mCalendar.get(Calendar.MINUTE),
+                mCalendar.get(Calendar.SECOND),
+                false
+
+        );
+
+        mDatePickerDialog = DatePickerDialog.newInstance(
+                this,
+                mCalendar.get(Calendar.YEAR),
+                mCalendar.get(Calendar.MONTH),
+                mCalendar.get(Calendar.DAY_OF_MONTH)
+        );
+
+       // for Initialize or opening date time picker
+    //    mDatePickerDialog.show(getFragmentManager(), "Datepickerdialog");
+    }
+
+    private void initViews() {
+        mTextView = findViewById(R.id.m_Calender_Label);
+        mEmailText=findViewById(R.id.emailText);
+        send=findViewById(R.id.send);
+    }
+
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        Button subscribeButton = findViewById(R.id.subscribeButton);
+        subscribeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "Subscribing to news topic");
+                // [START subscribe_topics]
+                FirebaseMessaging.getInstance().subscribeToTopic("news")
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                String msg = getString(R.string.msg_subscribed);
+                                if (!task.isSuccessful()) {
+                                    msg = getString(R.string.msg_subscribe_failed);
+                                }
+                                Log.d(TAG, msg);
+                                Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                // [END subscribe_topics]
+            }
+        });
+
+        Button logTokenButton = findViewById(R.id.logTokenButton);
+        logTokenButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Get token
+                String token = FirebaseInstanceId.getInstance().getToken();
+
+                // Log and toast
+                String msg = getString(R.string.msg_token_fmt, token);
+                Log.d(TAG, msg);
+                Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
 
 
 
@@ -206,10 +223,20 @@ ProgressDialog progressDialog;
         if (token == null) {
 
             // Get token
-            String token2 = FirebaseInstanceId.getInstance().getToken();
-            SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(token2);
 
-            setData(email, token2);
+           FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener( MainActivity.this,  new OnSuccessListener<InstanceIdResult>() {
+                @Override
+                public void onSuccess(InstanceIdResult instanceIdResult) {
+                    String newToken = instanceIdResult.getToken();
+                    Log.d("newToken",newToken);
+                     SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(newToken);
+                    setData(email, newToken);
+
+                }
+            });
+
+
+
 
             loadData();
             progressDialog.dismiss();
@@ -218,6 +245,7 @@ ProgressDialog progressDialog;
         }else {
             setData(email,token);
             loadData();
+            progressDialog.dismiss();
         }
 
 
@@ -225,21 +253,24 @@ ProgressDialog progressDialog;
 
     }
 
-    void setData(String email,String token){
-        String id= UUID.randomUUID().toString();
+    void setData(final String email, String token){
+        //String id= UUID.randomUUID().toString();
+
         Map<String, Object> users=new HashMap<>();
-        users.put("id",id);
+       // users.put("id",id);
         users.put("email",email);
         users.put("token",token);
 
-        mFirestore.collection("users")
-                        .add(users)
-                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+        mFirestore.collection("users").document(email)
+                        .set(users)
+                        .addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
-                            public void onSuccess(DocumentReference documentReference) {
-                                Log.d("" +getClass().getName(), "User added with id"+ documentReference.getId());
+                            public void onSuccess(Void aVoid) {
+                                Log.d("" +getClass().getName(), "User added with id: "+ email);
+
                             }
                         })
+
                         .addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
