@@ -21,23 +21,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
@@ -51,14 +44,17 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     Button send;
 
 
-    FirebaseFirestore mFirestore;
+    private String notifyTitle,notifyCalender,userEmail;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mFirestore=FirebaseFirestore.getInstance();
+
+
         mCalendar = Calendar.getInstance();
+
 
         initViews();
 
@@ -66,32 +62,32 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
 
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                // Create channel to show notifications.
-                String channelId = getString(R.string.default_notification_channel_id);
-                String channelName = getString(R.string.default_notification_channel_name);
-                NotificationManager notificationManager =
-                        getSystemService(NotificationManager.class);
-                notificationManager.createNotificationChannel(new NotificationChannel(channelId,
-                        channelName, NotificationManager.IMPORTANCE_HIGH));
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Create channel to show notifications.
+            String channelId = getString(R.string.default_notification_channel_id);
+            String channelName = getString(R.string.default_notification_channel_name);
+            NotificationManager notificationManager =
+                    getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(new NotificationChannel(channelId,
+                    channelName, NotificationManager.IMPORTANCE_HIGH));
+        }
 
-            // If a notification message is tapped, any data accompanying the notification
-            // message is available in the intent extras. In this sample the launcher
-            // intent is fired when the notification is tapped, so any accompanying data would
-            // be handled here. If you want a different intent fired, set the click_action
-            // field of the notification message to the desired intent. The launcher intent
-            // is used when no click_action is specified.
-            //
-            // Handle possible data accompanying notification message.
-            // [START handle_data_extras]
-            if (getIntent().getExtras() != null) {
-                for (String key : getIntent().getExtras().keySet()) {
-                    Object value = getIntent().getExtras().get(key);
-                    Log.d(TAG, "Key: " + key + " Value: " + value);
-                }
+        // If a notification message is tapped, any data accompanying the notification
+        // message is available in the intent extras. In this sample the launcher
+        // intent is fired when the notification is tapped, so any accompanying data would
+        // be handled here. If you want a different intent fired, set the click_action
+        // field of the notification message to the desired intent. The launcher intent
+        // is used when no click_action is specified.
+        //
+        // Handle possible data accompanying notification message.
+        // [START handle_data_extras]
+        if (getIntent().getExtras() != null) {
+            for (String key : getIntent().getExtras().keySet()) {
+                Object value = getIntent().getExtras().get(key);
+                Log.d(TAG, "Key: " + key + " Value: " + value);
             }
-            // [END handle_data_extras]
+        }
+        // [END handle_data_extras]
 
         initDateTimePicker();
 
@@ -99,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
 
 
-        }
+    }
 
     private void initDateTimePicker() {
         mTimePickerDialog = TimePickerDialog.newInstance(
@@ -118,8 +114,8 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
                 mCalendar.get(Calendar.DAY_OF_MONTH)
         );
 
-       // for Initialize or opening date time picker
-    //    mDatePickerDialog.show(getFragmentManager(), "Datepickerdialog");
+        // for Initialize or opening date time picker
+        //    mDatePickerDialog.show(getFragmentManager(), "Datepickerdialog");
     }
 
     private void initViews() {
@@ -160,10 +156,16 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
             @Override
             public void onClick(View v) {
                 // Get token
-                String token = FirebaseInstanceId.getInstance().getToken();
+                final String[] newToken = new String[1];
+                FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener( MainActivity.this,  new OnSuccessListener<InstanceIdResult>() {
+                    @Override
+                    public void onSuccess(InstanceIdResult instanceIdResult) {
+                    newToken[0] = instanceIdResult.getToken();
+                        Log.d("newToken", newToken[0]);
+                    }});
 
                 // Log and toast
-                String msg = getString(R.string.msg_token_fmt, token);
+                String msg = getString(R.string.msg_token_fmt, newToken[0]);
                 Log.d(TAG, msg);
                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
             }
@@ -173,7 +175,8 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
 
 
-        mTextView.setOnClickListener(new View.OnClickListener() {
+        //Send Notification
+        findViewById(R.id.setNotification).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mTextView.setText("");
@@ -181,10 +184,11 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
             }
         });
 
+        //Send Token for register
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendToken(v);
+                sendToken();
             }
         });
     }
@@ -202,20 +206,44 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         mCalendar.set(Calendar.HOUR_OF_DAY,hourOfDay);
         mCalendar.set(Calendar.MINUTE,minute);
         mCalendar.set(Calendar.SECOND,second);
-        retriveTime(mCalendar);
+
+        sendNotification();
+
+    }
+
+
+
+
+
+
+    private void sendNotification() {
+
+       //putting Dymmy data change it
+       notifyTitle="Dummy Title";
+       notifyCalender=retriveTime(mCalendar);
+       userEmail=mEmailText.getText().toString();
+
+        new AsyncSetNotification(this).execute(notifyTitle,notifyCalender,userEmail);
+    }
+
+    private String retriveTime(Calendar calendar){
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM"); //"yyyy MMM dd HH:mm:ss"
+
+        String formattedDate= sdf.format(calendar.getTime());
+
+        mTextView.setText(formattedDate);
+
+        return formattedDate;
+
 
 
     }
 
-    void retriveTime(Calendar calendar){
-        mTextView.setText(calendar.toString());
-    }
 
-ProgressDialog progressDialog;
-    public void sendToken(View view) {
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Registering Device...");
-        progressDialog.show();
+
+    private void sendToken() {
+
 
         final String token = SharedPreference.getInstance(this).getDeviceToken();
         final String email = mEmailText.getText().toString();
@@ -224,13 +252,14 @@ ProgressDialog progressDialog;
 
             // Get token
 
-           FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener( MainActivity.this,  new OnSuccessListener<InstanceIdResult>() {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener( MainActivity.this,  new OnSuccessListener<InstanceIdResult>() {
                 @Override
                 public void onSuccess(InstanceIdResult instanceIdResult) {
                     String newToken = instanceIdResult.getToken();
                     Log.d("newToken",newToken);
-                     SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(newToken);
-                    setData(email, newToken);
+                    SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(newToken);
+                    //    setData(email, newToken);
+                    sendData(email,newToken);
 
                 }
             });
@@ -239,13 +268,12 @@ ProgressDialog progressDialog;
 
 
             loadData();
-            progressDialog.dismiss();
             Toast.makeText(this, "Token not generated", Toast.LENGTH_LONG).show();
-            return;
+           // return;
         }else {
-            setData(email,token);
+
+            sendData(email,token);
             loadData();
-            progressDialog.dismiss();
         }
 
 
@@ -253,48 +281,18 @@ ProgressDialog progressDialog;
 
     }
 
-    void setData(final String email, String token){
-        //String id= UUID.randomUUID().toString();
-
-        Map<String, Object> users=new HashMap<>();
-       // users.put("id",id);
-        users.put("email",email);
-        users.put("token",token);
-
-        mFirestore.collection("users").document(email)
-                        .set(users)
-                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Log.d("" +getClass().getName(), "User added with id: "+ email);
-
-                            }
-                        })
-
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Log.w("" +getClass().getName(), "Error adding data to firestore");
-                            }
-                        });
-
+    void sendData(String email, String token){
+        // Initialize  AsyncLogin() class with email and password
+        new AsyncRegisterDevice(this).execute(email,token);
     }
+
 
 
     void loadData(){
-        mFirestore.collection("users")
-                    .get()
-                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                        @Override
-                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                            if(task.isSuccessful()){
-                                for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
-                                    Log.d("" +getClass().getName(), documentSnapshot.getId()+"=>" + documentSnapshot.getData());
-                                }
-                            }else{
-                                Log.w("" +getClass().getName(), "Error getting data from firestore");
-                            }
-                        }
-                    });
+
     }
+
+
+
+
 }
