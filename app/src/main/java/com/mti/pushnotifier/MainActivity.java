@@ -6,11 +6,12 @@
 
 package com.mti.pushnotifier;
 
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.ProgressDialog;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -26,16 +27,25 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.mti.pushnotifier.api.ApiClient;
+import com.mti.pushnotifier.api.UserApiServices;
+import com.mti.pushnotifier.model.NotificationRegistration;
+import com.mti.pushnotifier.model.DeviceRegistrationModel;
+import com.mti.pushnotifier.model.UserModel;
+import com.mti.pushnotifier.model.UserRegisterModel;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
     private static final String TAG = "MainActivity";
-
+    private  String newToken =null;
     Calendar mCalendar;
     TimePickerDialog mTimePickerDialog;
     DatePickerDialog mDatePickerDialog;
@@ -44,7 +54,9 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     Button send;
 
 
-    private String notifyTitle,notifyCalender,userEmail;
+    private String notifyTitle ,notifyMessage,notifyCalender;
+    private UserApiServices userApiServices;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
         initViews();
 
+        //Create Retrofit service Client
+       userApiServices = ApiClient.getClient().create(UserApiServices.class);
 
 
 
@@ -92,12 +106,29 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         initDateTimePicker();
 
 
+        //ToDO: Add these Line and functions on Login  Activity
+
+        //for Sign up
+        registerUserCall(userApiServices,"Tareq","mti.tareq2@gmail.com","01628399899"); //for only Single time
+
+        //for sign in
+        getUserCall(userApiServices,"mti.tareq3@gmail.com");// it will register device with token and Unique ID And will Save Sender id,name,email & phone in Shared prefs
+
+
+        //Todo: user ID,Name,email,phone  & device Token should be save in shared pref
+
+
+        //Todo: If shared prefs has the value of userId , user email &  deviceToken ,then we will start the MainActivity
+
+
+
 
 
 
     }
 
     private void initDateTimePicker() {
+
         mTimePickerDialog = TimePickerDialog.newInstance(
                 this,
                 mCalendar.get(Calendar.HOUR_OF_DAY),
@@ -107,12 +138,14 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
         );
 
+
         mDatePickerDialog = DatePickerDialog.newInstance(
                 this,
                 mCalendar.get(Calendar.YEAR),
                 mCalendar.get(Calendar.MONTH),
                 mCalendar.get(Calendar.DAY_OF_MONTH)
         );
+
 
         // for Initialize or opening date time picker
         //    mDatePickerDialog.show(getFragmentManager(), "Datepickerdialog");
@@ -156,16 +189,16 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
             @Override
             public void onClick(View v) {
                 // Get token
-                final String[] newToken = new String[1];
+
                 FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener( MainActivity.this,  new OnSuccessListener<InstanceIdResult>() {
                     @Override
                     public void onSuccess(InstanceIdResult instanceIdResult) {
-                    newToken[0] = instanceIdResult.getToken();
-                        Log.d("newToken", newToken[0]);
+                    newToken = instanceIdResult.getToken();
+                        Log.d("newToken", newToken);
                     }});
 
                 // Log and toast
-                String msg = getString(R.string.msg_token_fmt, newToken[0]);
+                String msg = getString(R.string.msg_token_fmt, newToken);
                 Log.d(TAG, msg);
                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
             }
@@ -188,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendToken();
+
             }
         });
     }
@@ -220,15 +253,16 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
        //putting Dymmy data change it
        notifyTitle="Dummy Title";
+        notifyMessage="Dummy messasge";
        notifyCalender=retriveTime(mCalendar);
        userEmail=mEmailText.getText().toString();
 
-        new AsyncSetNotification(this).execute(notifyTitle,notifyCalender,userEmail);
+        registerNotification(userApiServices,notifyTitle,notifyMessage,notifyCalender,userEmail);
     }
 
     private String retriveTime(Calendar calendar){
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM"); //"yyyy MMM dd HH:mm:ss"
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy"); //"yyyy MMM dd HH:mm:ss"
 
         String formattedDate= sdf.format(calendar.getTime());
 
@@ -241,12 +275,110 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     }
 
 
+    private void registerUserCall(UserApiServices userApiServices, String userName, String userEmail,String userPhone) {
 
-    private void sendToken() {
+        Call<UserRegisterModel> registrationCall=userApiServices.userRegisterResponse(userName,userEmail,userPhone); //passing the paremeter value
+
+        registrationCall.enqueue(new Callback<UserRegisterModel>() {
+                                     @Override
+                                     public void onResponse(Call<UserRegisterModel> call, Response<UserRegisterModel> response) {
+                                         Toast.makeText(MainActivity.this, ""+response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                                     }
+
+                                     @Override
+                                     public void onFailure(Call<UserRegisterModel> call, Throwable t) {
+                                        Log.d("" +getClass().getName(), "User register failed");
+                                     }
+                                 }
 
 
-        final String token = SharedPreference.getInstance(this).getDeviceToken();
-        final String email = mEmailText.getText().toString();
+        );
+
+    }
+
+
+
+
+    private void registerNotification(UserApiServices userApiServices,  String notificationTitle, String notificationMessage, String calender, String email) {
+
+        Call<NotificationRegistration> registrationCall= userApiServices.setNotificationResponse(notificationTitle ,notificationMessage,calender,email); //passing the paremeter value
+
+        registrationCall.enqueue(new Callback<NotificationRegistration>() {
+
+            @Override
+            public void onResponse(Call<NotificationRegistration> call, Response<NotificationRegistration> response) {
+
+                //Todo: On Success Taks should be right there
+
+                try {
+                    Log.d("Tareq", response.body().getError().toString());
+                    Log.d("Tareq", response.body().getMessage().toString());
+                    Toast.makeText(MainActivity.this, "Error: " + response.body().getError().toString()
+                            + "\n msg: " + response.body().getMessage().toString(), Toast.LENGTH_SHORT).show();
+
+                } catch (Exception e){
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<NotificationRegistration> call, Throwable t) {
+
+            }
+
+
+
+        });
+
+    }
+
+
+    private void  getUserCall(UserApiServices userApiServices, String _email){
+
+
+        Call<UserModel> getUserModelCall=userApiServices.getUserResponse(_email);
+
+        getUserModelCall.enqueue(new Callback<UserModel>() {
+            @Override
+            public void onResponse(Call<UserModel> call, Response<UserModel> response) {
+                retriveUser(response.body().getMessage().getUId().toString()
+                            ,response.body().getMessage().getUName()
+                            ,response.body().getMessage().getUEmail()
+                            ,response.body().getMessage().getUPhone()
+                        );
+            }
+
+            @Override
+            public void onFailure(Call<UserModel> call, Throwable t) {
+        Log.d("" +getClass().getName(), " get user failed");
+            }
+        });
+
+    }
+
+    //Todo Delete the static field and use shared pref instead
+    private static int userID = -1;
+    private static String userName;
+    private static String userEmail;
+    private static String userPhone;
+
+    void retriveUser(String _userID,String _userName,String _userEmail,String _userPhone){
+        userID=Integer.parseInt(_userID);
+        userName=_userName;
+        userEmail=_userEmail;
+        userPhone=_userPhone;
+
+
+        //Todo: On Sign in Success we will register the device
+        registerDevice(userApiServices, userID);
+    }
+    private void registerDevice(UserApiServices mUserApiServices, int _userId) {
+
+        String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+
+
+        String     token = SharedPreference.getInstance(this).getDeviceToken(); //Getting token from shared pref because it need to be created on device data clean only
 
         if (token == null) {
 
@@ -258,41 +390,54 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
                     String newToken = instanceIdResult.getToken();
                     Log.d("newToken",newToken);
                     SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(newToken);
-                    //    setData(email, newToken);
-                    sendData(email,newToken);
+
 
                 }
             });
 
-
-
-
-            loadData();
-            Toast.makeText(this, "Token not generated", Toast.LENGTH_LONG).show();
-           // return;
         }else {
 
-            sendData(email,token);
-            loadData();
+            Toast.makeText(this, "Token found", Toast.LENGTH_LONG).show();
+
+            //Regiser Devices
+            registerDeviceCall(mUserApiServices, androidId, token, _userId);
         }
 
-
-
-
-    }
-
-    void sendData(String email, String token){
-        // Initialize  AsyncLogin() class with email and password
-        new AsyncRegisterDevice(this).execute(email,token);
     }
 
 
 
-    void loadData(){
+
+    private void registerDeviceCall(UserApiServices userApiServices, String d_uniqueID, String token,int userID) {
+
+        Call<DeviceRegistrationModel> registrationCall=userApiServices.deviceRegisterResponse(d_uniqueID,token,userID); //passing the paremeter value
+
+        registrationCall.enqueue(new Callback<DeviceRegistrationModel>() {
+
+            @Override
+            public void onResponse(Call<DeviceRegistrationModel> call, Response<DeviceRegistrationModel> response) {
+
+                //Todo: On Success Taks should be right there
+
+                try {
+                    Log.d("Tareq", response.body().getError().toString());
+                    Log.d("Tareq", response.body().getMessage().toString());
+                    Toast.makeText(MainActivity.this, "Error: " + response.body().getError().toString()
+                            + "\n msg: " + response.body().getMessage().toString(), Toast.LENGTH_SHORT).show();
+
+                } catch (Exception e){
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<DeviceRegistrationModel> call, Throwable t) {
+
+            }
+
+        });
 
     }
-
-
-
 
 }
