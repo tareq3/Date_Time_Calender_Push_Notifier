@@ -33,6 +33,7 @@ import com.mti.pushnotifier.model.NotificationRegistration;
 import com.mti.pushnotifier.model.DeviceRegistrationModel;
 import com.mti.pushnotifier.model.UserModel;
 import com.mti.pushnotifier.model.UserRegisterModel;
+import com.mti.pushnotifier.model.WishMessageModel;
 import com.orhanobut.hawk.Hawk;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
@@ -43,6 +44,7 @@ import java.util.Calendar;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.http.Field;
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
     private static final String TAG = "MainActivity";
@@ -55,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     Button send;
 
 
-    private String notifyTitle ,notifyMessage,notifyCalender;
+
     private UserApiServices userApiServices;
 
 
@@ -112,8 +114,9 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         //for Sign up
         registerUserCall(userApiServices,"Tareq","mti.tareq2@gmail.com","01628399899"); //for only Single time
 
+
         //for sign in
-        getUserCall(userApiServices,"mti.tareq3@gmail.com");// it will register device with token and Unique ID And will Save Sender id,name,email & phone in Shared prefs
+        getUserCall(userApiServices,"mti.tareq2@gmail.com");// it will register device with token and Unique ID And will Save Sender id,name,email & phone in Shared prefs
 
 
         //Todo: user ID,Name,email,phone  & device Token should be save in shared pref
@@ -245,21 +248,20 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
     }
 
-
-
-
-
-
     private void sendNotification() {
 
-       //putting Dymmy data change it
-       notifyTitle="Dummy Title";
-        notifyMessage="Dummy messasge";
-       notifyCalender=retriveTime(mCalendar);
-    String   userEmail=mEmailText.getText().toString();
-
-        registerNotification(userApiServices,notifyTitle,notifyMessage,notifyCalender,userEmail);
+        setWishMessageCall(userApiServices
+                            ,"title2"
+                            ,"body"
+                            ,"14-09-2018"
+                            ,"13-09-2018"
+                            ,2
+                            ,1
+                            ,1
+                            ,"C_title",
+                            "location_id");
     }
+
 
     private String retriveTime(Calendar calendar){
 
@@ -300,38 +302,46 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
 
 
-    private void registerNotification(UserApiServices userApiServices,  String notificationTitle, String notificationMessage, String calender, String email) {
+    private void setWishMessageCall(UserApiServices userApiServices,
+                                    String wm_title,
+                                    String wm_body,
+                                    String wm_recieving_date,
+                                    String wm_sending_date,
+                                    int wm_reciever_id,
+                                    int wm_sender_id,
+                                    int wm_category_id,
+                                    String wm_category_title,
+                                    String wm_location_id) {
 
-        Call<NotificationRegistration> registrationCall= userApiServices.setNotificationResponse(notificationTitle ,notificationMessage,calender,email); //passing the paremeter value
+        Call<WishMessageModel> setWishMsgCall= userApiServices.wishMessageResponse(      wm_title,
+                                                                                           wm_body,
+                                                                                           wm_recieving_date,
+                                                                                           wm_sending_date,
+                                                                                           wm_reciever_id,
+                                                                                           wm_sender_id,
+                                                                                           wm_category_id,
+                                                                                           wm_category_title,
+                                                                                           wm_location_id);
+         //passing the paremeter value
 
-        registrationCall.enqueue(new Callback<NotificationRegistration>() {
+        setWishMsgCall.enqueue(new Callback<WishMessageModel>() {
+            @Override
+            public void onResponse(Call<WishMessageModel> call, Response<WishMessageModel> response) {
+                retriveSetWishMsg(response.body().getError().toString(),  response.body().getMessage().toString());
+              }
 
             @Override
-            public void onResponse(Call<NotificationRegistration> call, Response<NotificationRegistration> response) {
-
-                //Todo: On Success Taks should be right there
-
-                try {
-                    Log.d("Tareq", response.body().getError().toString());
-                    Log.d("Tareq", response.body().getMessage().toString());
-                    Toast.makeText(MainActivity.this, "Error: " + response.body().getError().toString()
-                            + "\n msg: " + response.body().getMessage().toString(), Toast.LENGTH_SHORT).show();
-
-                } catch (Exception e){
-
-                }
-
+            public void onFailure(Call<WishMessageModel> call, Throwable t) {
+                Log.d("" +getClass().getName(), " Set Wish msg failed");
             }
-
-            @Override
-            public void onFailure(Call<NotificationRegistration> call, Throwable t) {
-
-            }
-
-
-
         });
 
+    }
+
+    private void retriveSetWishMsg(String error, String message) {
+        Log.d("" +getClass().getName(), "Set Wish"+ message);
+
+        Toast.makeText(MainActivity.this, error + ""+message, Toast.LENGTH_LONG).show();
     }
 
 
@@ -378,12 +388,11 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         //Todo: On Sign in Success we will register the device
         registerDevice(userApiServices, Hawk.get(Hawk_Keys.user_id.toString(),-1));
     }
-    private void registerDevice(UserApiServices mUserApiServices, int _userId) {
+    private void registerDevice(final UserApiServices mUserApiServices, final int _userId) {
 
         String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 
 
-      //  String     token = SharedPreference.getInstance(this).getDeviceToken(); //Getting token from shared pref because it need to be created on device data clean only
 
         String token= Hawk.get(Hawk_Keys.device_token.toString());
         if (token == null) {
@@ -395,8 +404,9 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
                 public void onSuccess(InstanceIdResult instanceIdResult) {
                     String newToken = instanceIdResult.getToken();
                     Log.d("newToken",newToken);
-                    SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(newToken);
+                    Hawk.put(Hawk_Keys.device_token.toString(),newToken);
 
+                    registerDevice(mUserApiServices,_userId); //Doing recursion this will help to made the code moduler
 
                 }
             });

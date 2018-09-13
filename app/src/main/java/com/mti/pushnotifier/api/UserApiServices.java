@@ -12,6 +12,7 @@ import com.mti.pushnotifier.model.NotificationRegistration;
 import com.mti.pushnotifier.model.DeviceRegistrationModel;
 import com.mti.pushnotifier.model.UserModel;
 import com.mti.pushnotifier.model.UserRegisterModel;
+import com.mti.pushnotifier.model.WishMessageModel;
 
 import retrofit2.Call;
 import retrofit2.http.Field;
@@ -34,8 +35,16 @@ public interface UserApiServices {
 
 
     @FormUrlEncoded
-    @POST("SetNotification.php")
-    Call<NotificationRegistration> setNotificationResponse(@Field("title") String title, @Field("message") String message, @Field("calender") String calender, @Field("email") String email);
+    @POST("SetWishMessage.php")
+    Call<WishMessageModel> wishMessageResponse(@Field("wm_title") String wm_title,
+                                               @Field("wm_body") String wm_body,
+                                               @Field("wm_recieving_date") String wm_recieving_date,
+                                               @Field("wm_sending_date") String wm_sending_date,
+                                                @Field("wm_reciever_id") int wm_reciever_id,
+                                                @Field("wm_sender_id") int wm_sender_id,
+                                                @Field("wm_category_id") int wm_category_id,
+                                                @Field("wm_category_title") String wm_category_title,
+                                                @Field( "wm_location_id") String wm_location_id);
 
 
     @GET("GetUser.php")

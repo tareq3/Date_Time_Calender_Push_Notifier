@@ -1,19 +1,12 @@
 
-/*
- * Created by Tareq Islam on 8/16/18 2:47 AM
- *
- *  Last modified 8/16/18 12:44 AM
- */
-
 package com.mti.pushnotifier.model;
 
-import com.google.gson.annotations.SerializedName;
-
 import javax.annotation.Generated;
+import com.google.gson.annotations.SerializedName;
 
 @Generated("net.hexar.json2pojo")
 @SuppressWarnings("unused")
-public class NotificationRegistration {
+public class WishMessageModel {
 
     @SerializedName("error")
     private Boolean mError;

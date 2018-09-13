@@ -29,7 +29,6 @@ import com.google.firebase.messaging.RemoteMessage;
 import com.mti.pushnotifier.Hawk_Keys;
 import com.mti.pushnotifier.MainActivity;
 import com.mti.pushnotifier.R;
-import com.mti.pushnotifier.SharedPreference;
 import com.orhanobut.hawk.Hawk;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
@@ -49,8 +48,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // TODO: Implement this method to send token to your app server.
 
 
-
-        //SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(token);
         Hawk.put(Hawk_Keys.device_token.toString(),token);
     }
     /**
