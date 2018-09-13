@@ -8,7 +8,6 @@ package com.mti.pushnotifier.api;
 
 
 
-import com.mti.pushnotifier.model.NotificationRegistration;
 import com.mti.pushnotifier.model.DeviceRegistrationModel;
 import com.mti.pushnotifier.model.UserModel;
 import com.mti.pushnotifier.model.UserRegisterModel;
