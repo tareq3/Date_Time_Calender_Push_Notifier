@@ -29,7 +29,6 @@ import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.mti.pushnotifier.api.ApiClient;
 import com.mti.pushnotifier.api.UserApiServices;
-import com.mti.pushnotifier.model.NotificationRegistration;
 import com.mti.pushnotifier.model.DeviceRegistrationModel;
 import com.mti.pushnotifier.model.UserModel;
 import com.mti.pushnotifier.model.UserRegisterModel;
