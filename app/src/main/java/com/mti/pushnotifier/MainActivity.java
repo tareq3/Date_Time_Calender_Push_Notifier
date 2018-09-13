@@ -33,6 +33,7 @@ import com.mti.pushnotifier.model.NotificationRegistration;
 import com.mti.pushnotifier.model.DeviceRegistrationModel;
 import com.mti.pushnotifier.model.UserModel;
 import com.mti.pushnotifier.model.UserRegisterModel;
+import com.orhanobut.hawk.Hawk;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
 
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        Hawk.init(getApplicationContext()).build();
 
         mCalendar = Calendar.getInstance();
 
@@ -255,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
        notifyTitle="Dummy Title";
         notifyMessage="Dummy messasge";
        notifyCalender=retriveTime(mCalendar);
-       userEmail=mEmailText.getText().toString();
+    String   userEmail=mEmailText.getText().toString();
 
         registerNotification(userApiServices,notifyTitle,notifyMessage,notifyCalender,userEmail);
     }
@@ -357,29 +358,34 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
     }
 
-    //Todo Delete the static field and use shared pref instead
+  /*  //Todo Delete the static field and use shared pref instead
     private static int userID = -1;
     private static String userName;
     private static String userEmail;
-    private static String userPhone;
+    private static String userPhone;*/
 
     void retriveUser(String _userID,String _userName,String _userEmail,String _userPhone){
-        userID=Integer.parseInt(_userID);
-        userName=_userName;
-        userEmail=_userEmail;
-        userPhone=_userPhone;
+   //     userID=Integer.parseInt(_userID);
+       Hawk.put(Hawk_Keys.user_id.toString(), Integer.parseInt(_userID));
+     //   userName=_userName;
+        Hawk.put(Hawk_Keys.user_name.toString(),_userName);
+       // userEmail=_userEmail;
+        Hawk.put(Hawk_Keys.user_email.toString(),_userEmail);
+       // userPhone=_userPhone;
+        Hawk.put(Hawk_Keys.user_phone.toString(),_userPhone);
 
 
         //Todo: On Sign in Success we will register the device
-        registerDevice(userApiServices, userID);
+        registerDevice(userApiServices, Hawk.get(Hawk_Keys.user_id.toString(),-1));
     }
     private void registerDevice(UserApiServices mUserApiServices, int _userId) {
 
         String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 
 
-        String     token = SharedPreference.getInstance(this).getDeviceToken(); //Getting token from shared pref because it need to be created on device data clean only
+      //  String     token = SharedPreference.getInstance(this).getDeviceToken(); //Getting token from shared pref because it need to be created on device data clean only
 
+        String token= Hawk.get(Hawk_Keys.device_token.toString());
         if (token == null) {
 
             // Get token

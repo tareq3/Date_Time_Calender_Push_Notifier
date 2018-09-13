@@ -26,9 +26,11 @@ import com.firebase.jobdispatcher.GooglePlayDriver;
 import com.firebase.jobdispatcher.Job;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.mti.pushnotifier.Hawk_Keys;
 import com.mti.pushnotifier.MainActivity;
 import com.mti.pushnotifier.R;
 import com.mti.pushnotifier.SharedPreference;
+import com.orhanobut.hawk.Hawk;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
@@ -48,7 +50,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
 
 
-        SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(token);
+        //SharedPreference.getInstance(getApplicationContext()).saveDeviceToken(token);
+        Hawk.put(Hawk_Keys.device_token.toString(),token);
     }
     /**
      * Called when message is received.

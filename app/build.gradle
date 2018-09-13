@@ -48,5 +48,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
 
     implementation 'org.glassfish:javax.annotation:10.0-b28' //for pojo
+
+    implementation "com.orhanobut:hawk:2.0.1"
 }
 apply plugin: 'com.google.gms.google-services'
