@@ -250,9 +250,9 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
     private void sendNotification() {
 
         setWishMessageCall(userApiServices
-                            ,"title2"
+                            ,"title"
                             ,"body"
-                            ,"14-09-2018"
+                            ,"01-10-2018"
                             ,"13-09-2018"
                             ,2
                             ,1
