@@ -12,8 +12,8 @@ import android.app.NotificationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -43,7 +43,6 @@ import java.util.Calendar;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.http.Field;
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener{
     private static final String TAG = "MainActivity";
@@ -216,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
             @Override
             public void onClick(View v) {
                 mTextView.setText("");
-                mDatePickerDialog.show(getFragmentManager(),"Datepickerdialog");
+                mDatePickerDialog.show(getSupportFragmentManager(),"Datepickerdialog");
             }
         });
 
@@ -234,7 +233,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         mCalendar.set(Calendar.YEAR,year);
         mCalendar.set(Calendar.MONTH,monthOfYear);
         mCalendar.set(Calendar.DAY_OF_MONTH,dayOfMonth);
-        mTimePickerDialog.show(getFragmentManager(), "Timepickerdialog");
+        mTimePickerDialog.show(getSupportFragmentManager(), "Timepickerdialog");
     }
 
     @Override
@@ -289,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
                                      @Override
                                      public void onFailure(Call<UserRegisterModel> call, Throwable t) {
-                                        Log.d("" +getClass().getName(), "User register failed");
+                                        Log.d("" +getClass().getName(), "User register failed"+ t.getMessage());
                                      }
                                  }
 

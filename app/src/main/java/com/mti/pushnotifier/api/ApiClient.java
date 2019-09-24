@@ -11,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
 
-    public static final String BASE_URL="http://192.168.0.108/firebaseCloud_to_Android_using_mysql_PHP/v1/";
+    public static final String BASE_URL="http://192.168.1.4/firebaseCloud_to_Android_using_mysql_PHP/v1/";
 
     private static Retrofit retrofit=null;
 
